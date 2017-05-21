@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/mark/CLionProjects/megaprayerI2c/event_gpio.h
+
+/Users/mark/CLionProjects/megaprayerI2c/gpio_lib.h
+
+/Users/mark/CLionProjects/megaprayerI2c/i2c.cpp
+i2c.h
+/Users/mark/CLionProjects/megaprayerI2c/i2c.h
+cstdio
+-
+gpio_lib.h
+/Users/mark/CLionProjects/megaprayerI2c/gpio_lib.h
+event_gpio.h
+/Users/mark/CLionProjects/megaprayerI2c/event_gpio.h
+
+/Users/mark/CLionProjects/megaprayerI2c/i2c.h
+cstdlib
+-
+
+/Users/mark/CLionProjects/megaprayerI2c/main.cpp
+iostream
+-
+
