@@ -7,6 +7,12 @@
 
 #define CLK_WIDTH 100
 
+#define INPUT 0
+#define OUTPUT 1
+
+#define LOW 0
+#define HIGH 1
+
 // The default I2C address
 #define MPR121_I2CADDR_DEFAULT  0x5A
 #define MPR121_TOUCHSTATUS_L    0x00
@@ -59,7 +65,7 @@ public:
     unsigned char rx(unsigned int ack);
     i2c(unsigned int scl, unsigned int sda);
     bool init(void);
-    void send(uint8_t address, uint8_t reg, uint8_t (&buf)[]);
+    void send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len);
     uint8_t receive8(uint8_t address, uint8_t reg);
     uint16_t receive16(uint8_t address, uint8_t reg);
     unsigned int SCL;

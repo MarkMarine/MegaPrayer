@@ -5,8 +5,6 @@
 #include "i2c.h"
 #include <cstdio>
 #include "gpio_lib.h"
-#include "event_gpio.h"
-//#include <boost/thread/thread.hpp>
 
 
 
@@ -235,7 +233,7 @@ uint8_t i2c::rx(unsigned int ack)
 }
 
 
-void i2c::send(uint8_t address, uint8_t reg, uint8_t (&buf)[])
+void i2c::send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len)
 {
     uint8_t write = address << 1; // Write address
     size_t addLen = 1;
@@ -288,8 +286,8 @@ uint16_t i2c::receive16(uint8_t address, uint8_t reg)
     tx(&reg, len); // send the register we want to read
     startBit(); // restart
     tx(&read, len); // start the read
-    unsigned char h = rx(1); // byte 0 + ACK
-    unsigned char l = rx(0); // byte 1 + NACK
+    uint8_t h = rx(1); // byte 0 + ACK
+    uint8_t l = rx(0); // byte 1 + NACK
     stopBit();
 
     uint16_t val = (uint16_t)h;
