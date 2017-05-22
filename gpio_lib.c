@@ -91,7 +91,7 @@ int sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val) {
 
     *(&pio->cfg[0] + index) = cfg;
 
-    printf("set_cfgpin: %d, %d\n", pin, val);
+    //printf("set_cfgpin: %d, %d\n", pin, val); //!! This print was turning 600kHz i2c into 4kHz!!
 
     return 0;
 }
