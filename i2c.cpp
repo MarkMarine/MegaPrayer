@@ -10,8 +10,8 @@
 
 
 
-i2c::i2c(int scl, int sda) :
-        gpio_scl(scl), gpio_sda(sda)
+i2c::i2c(unsigned int scl, unsigned int sda) :
+        SCL(scl), SDA(sda)
 {
 }
 
@@ -23,11 +23,22 @@ bool i2c::init(void)
         return false;
     }
 
-    gpio_export(gpio_scl);
-    gpio_export(gpio_sda);
+    sunxi_gpio_set_cfgpin(SCL, OUTPUT);
+    sunxi_gpio_set_cfgpin(SDA, OUTPUT);
 
-    gpio_set_direction(gpio_scl, 1);
-    gpio_set_direction(gpio_sda, 1);
+//    Wire.begin();
+//
+//    _i2caddr = i2caddr;
+//
+//    // soft reset
+//    writeRegister(MPR121_SOFTRESET, 0x63);
+//    delay();
+//
+//    writeRegister(MPR121_ECR, 0x0);
+//
+//    uint8_t c = readRegister8(MPR121_CONFIG2);
+//
+//    if (c != 0x24) return false;
 
     printf("init finished\n");
 
@@ -46,41 +57,35 @@ void i2c::startBit(void)
 {
     // To start a transaction, SDA is pulled low while SCL remains high
     // the next step is to pull SCL low.
-    gpio_set_direction(gpio_scl, OUTPUT);
-    gpio_set_direction(gpio_sda, OUTPUT);
-
-    gpio_set_value(gpio_scl, HIGH);
+    sunxi_gpio_output(SCL, HIGH);
     delay();
-    gpio_set_value(gpio_sda, HIGH);
+    sunxi_gpio_set_cfgpin(SDA, OUTPUT);
+    sunxi_gpio_output(SDA, HIGH);
     delay();
-    gpio_set_value(gpio_sda, LOW);
+    sunxi_gpio_output(SDA, LOW);
     delay();
-    gpio_set_value(gpio_scl, LOW);
+    sunxi_gpio_output(SCL, LOW);
     delay();
-
-
 }
 
 void i2c::stopBit(void)
 {
     // Releasing SDA to float high again would be a stop marker
     // signaling the end of a bus transaction.
-    gpio_set_direction(gpio_scl, OUTPUT);
-    gpio_set_direction(gpio_sda, OUTPUT);
+    sunxi_gpio_set_cfgpin(SDA, OUTPUT);
 
-    gpio_set_value(gpio_sda, LOW);
+    sunxi_gpio_output(SDA, LOW);
     delay();
-    gpio_set_value(gpio_scl, HIGH);
+    sunxi_gpio_output(SCL, HIGH);
     delay();
-    gpio_set_value(gpio_sda, HIGH);
+    sunxi_gpio_output(SDA, HIGH);
     delay();
 }
 
-unsigned int i2c::tx(unsigned char *buf, size_t len)
+int i2c::tx(uint8_t *buf, size_t len)
 {
 
-    gpio_set_direction(gpio_scl, OUTPUT);
-    gpio_set_direction(gpio_sda, OUTPUT);
+    sunxi_gpio_set_cfgpin(SDA, OUTPUT);
 
     int b;
     unsigned char bit;
@@ -89,94 +94,165 @@ unsigned int i2c::tx(unsigned char *buf, size_t len)
         for (b = 0; b < 8; b++) {
             //printf("%d & %d = %d\n", buf[i], bit, buf[i] & bit);
 
-            gpio_set_value(gpio_sda, (buf[i] & bit));
+            sunxi_gpio_output(SDA, (buf[i] & bit));
             delay();
 
-            gpio_set_value(gpio_scl, HIGH);
+            sunxi_gpio_output(SCL, HIGH);
             delay();
 
             bit >>= 1;
-            gpio_set_value(gpio_scl, LOW);
+            sunxi_gpio_output(SCL, LOW);
         }
     }
-    gpio_set_value(gpio_sda, HIGH);
-    gpio_set_value(gpio_scl, HIGH);
+    sunxi_gpio_output(SDA, HIGH);
+    sunxi_gpio_output(SCL, HIGH);
     delay();
 
     // Read SDA for the (N)ACK
-    gpio_set_direction(gpio_sda, INPUT);
-
-    unsigned int ack = LOW;
-    gpio_get_value(gpio_sda, &ack);
-    gpio_set_value(gpio_scl, LOW);
+    sunxi_gpio_set_cfgpin(SDA, INPUT);
+    int ack = sunxi_gpio_input(SDA);
+    sunxi_gpio_output(SCL, LOW);
     return ack;
 }
 
-unsigned char i2c::rx(unsigned int ack)
+void i2c::checkError(int func)
 {
-    unsigned char d=0;
-    gpio_set_direction(gpio_scl, OUTPUT);
-    gpio_set_direction(gpio_sda, OUTPUT);
+    if (func) printf("Error");
+}
 
-    // unlatch SDA TODO can this just be set input?
-    gpio_set_value(gpio_sda, HIGH);
+int i2c::txWStartStop(uint8_t addr, uint8_t reg, uint8_t val)
+{
 
+    // To start a transaction, SDA is pulled low while SCL remains high
+    // the next step is to pull SCL low.
+    // Start START
+    checkError(sunxi_gpio_set_cfgpin(SCL, OUTPUT));
+    checkError(sunxi_gpio_set_cfgpin(SDA, OUTPUT));
+
+    checkError(sunxi_gpio_output(SCL, HIGH));
+    delay();
+    checkError(sunxi_gpio_output(SDA, HIGH));
+    delay();
+    checkError(sunxi_gpio_output(SDA, LOW));
+    delay();
+    checkError(sunxi_gpio_output(SCL, LOW));
+    delay();
+    // End START
+
+    // Transmit bits
+    for(uint8_t x=8; x; x--) {
+        if(addr & 0x80) checkError(sunxi_gpio_output(SDA, 1));
+        else checkError(sunxi_gpio_output(SDA, 0));
+        checkError(sunxi_gpio_output(SCL, 1));
+        addr <<= 1;
+        checkError(sunxi_gpio_output(SCL, 0));
+    }
+
+    // Transmit bits
+    for(uint8_t x=8; x; x--) {
+        if(reg & 0x80) checkError(sunxi_gpio_output(SDA, 1));
+        else checkError(sunxi_gpio_output(SDA, 0));
+        checkError(sunxi_gpio_output(SCL, 1));
+        reg <<= 1;
+        checkError(sunxi_gpio_output(SCL, 0));
+    }
+
+    // Transmit bits
+    for(uint8_t x=8; x; x--) {
+        if(val & 0x80) checkError(sunxi_gpio_output(SDA, 1));
+        else checkError(sunxi_gpio_output(SDA, 0));
+        checkError(sunxi_gpio_output(SCL, 1));
+        val <<= 1;
+        checkError(sunxi_gpio_output(SCL, 0));
+    }
+
+    checkError(sunxi_gpio_output(SDA, HIGH));
+    checkError(sunxi_gpio_output(SCL, HIGH));
+    delay();
+
+    // Read SDA for the (N)ACK
+    checkError(sunxi_gpio_set_cfgpin(SDA, INPUT));
+    int ack = sunxi_gpio_input(SDA);
+    checkError(sunxi_gpio_output(SCL, LOW));
+
+    // Start STOP
+    // Releasing SDA to float high again would be a stop marker
+    // signaling the end of a bus transaction.
+    checkError(sunxi_gpio_set_cfgpin(SDA, OUTPUT));
+
+    checkError(sunxi_gpio_output(SDA, LOW));
+    delay();
+    checkError(sunxi_gpio_output(SCL, HIGH));
+    delay();
+    checkError(sunxi_gpio_output(SDA, HIGH));
+    delay();
+    // End STOP
+    return ack;
+}
+
+uint8_t i2c::rx(unsigned int ack)
+{
+    uint8_t dat = 0;
     // receive the byte.
     for (int i = 0; i < 8; ++i) {
-        d <<= 1;
+        dat <<= 1;
 
         // Wait for any clock stretching. If any chip is latching the scl line low,
         // we need to wait for it, our transmission won't be heard if we don't.
-        unsigned int scl = LOW;
+        int free;
         do {
-            gpio_set_direction(gpio_scl, OUTPUT);
-            gpio_set_value(gpio_scl, HIGH);
-            gpio_set_direction(gpio_scl, INPUT);
-            gpio_get_value(gpio_scl, &scl);
-        } while (scl == LOW);
+            sunxi_gpio_set_cfgpin(SCL, OUTPUT);
+            sunxi_gpio_output(SCL, HIGH);
+            sunxi_gpio_set_cfgpin(SCL, INPUT);
+            free = sunxi_gpio_input(SCL);
+        } while (!free);
         delay();
 
+        sunxi_gpio_set_cfgpin(SDA, INPUT);
+        int up = sunxi_gpio_input(SDA);
         // Read SDA, if it's HIGH we |= 1, if not it'll be a zero
-        unsigned int sda = LOW;
-        gpio_set_direction(gpio_sda, INPUT);
-        gpio_get_value(gpio_sda, &sda);
-        if (sda == HIGH) d |= 1;
+        if (up) dat |= 1;
 
         // Pulse the clock back down, done reading this one
-        gpio_set_direction(gpio_scl, OUTPUT);
-        gpio_set_value(gpio_scl, LOW);
+        sunxi_gpio_set_cfgpin(SCL, OUTPUT);
+        sunxi_gpio_output(SCL, LOW);
         // continue reading
     }
 
     // send the (n)ack
-    gpio_set_direction(gpio_sda, OUTPUT);
+    sunxi_gpio_set_cfgpin(SDA, OUTPUT);
     if (ack) {
-        gpio_set_value(gpio_sda, LOW);
+        sunxi_gpio_output(SDA, LOW);
     } else {
-        gpio_set_value(gpio_sda, HIGH);
+        sunxi_gpio_output(SDA, HIGH);
     }
-    gpio_set_value(gpio_scl, HIGH);
+    sunxi_gpio_output(SCL, HIGH);
     delay(); // this is the wait for the (n)ack
 
-    gpio_set_value(gpio_scl, LOW);
-    gpio_set_value(gpio_sda, HIGH);
-    return d;
+    sunxi_gpio_output(SCL, LOW);
+    sunxi_gpio_output(SDA, HIGH);
+    return dat;
 }
 
 
-void i2c::send(uint8_t address, unsigned char *buf, size_t len)
+void i2c::send(uint8_t address, uint8_t reg, uint8_t (&buf)[])
 {
-    address <<= 1; // Write address
-    unsigned char* add = reinterpret_cast<unsigned char*>(&address);
+    uint8_t write = address << 1; // Write address
     size_t addLen = 1;
 
     startBit();
-    tx(add, addLen);
-    tx(buf, len);
+    int ack = tx(&write, addLen);
+    if (!ack) printf("ACK failed!");
+
+    ack = tx(&reg, addLen);
+    if (!ack) printf("ACK failed!");
+
+    ack = tx(buf, len);
+    if (!ack) printf("ACK failed!");
     stopBit();
 }
 
-unsigned char i2c::receive8(uint8_t address, uint8_t reg)
+uint8_t i2c::receive8(uint8_t address, uint8_t reg)
 {
 //    1. Send a start sequence
 //    2. Send 0xC0 ( I2C address of the CMPS03 with the R/W bit low (even address)
@@ -186,46 +262,37 @@ unsigned char i2c::receive8(uint8_t address, uint8_t reg)
 //    6. Read data byte from CMPS03
 //    7. Send the stop sequence.
 
-    address <<= 1; // Write address
-    unsigned char* writeAddress = reinterpret_cast<unsigned char*>(&address);
-    address += 1;
-    unsigned char* readAddress = reinterpret_cast<unsigned char*>(&address);
-
-    unsigned char* readRegister = reinterpret_cast<unsigned char*>(&reg);
+    uint8_t write = address << 1; // Write address
+    uint8_t read = write + (uint8_t )1; // read address, final bit turned on
     size_t len = 1;
 
     startBit();
-    tx(writeAddress, len);
-    tx(readRegister, len);
+    tx(&write, len);
+    tx(&reg, len);
     startBit();
-    tx(readAddress, len);
-    unsigned char val = rx(0);
+    tx(&read, len);
+    uint8_t val = rx(0);
     stopBit();
-
     return val;
 }
 
 uint16_t i2c::receive16(uint8_t address, uint8_t reg)
 {
-    address <<= 1; // Write address
-    unsigned char* writeAddress = reinterpret_cast<unsigned char*>(&address);
-    address += 1;
-    unsigned char* readAddress = reinterpret_cast<unsigned char*>(&address);
+    uint8_t write = address << 1; // Write address is 7bit add << 1 with 8th bit as 0
+    uint8_t read = write + (uint8_t )1; // read address, final bit turned on
 
-    unsigned char* readRegister = reinterpret_cast<unsigned char*>(&reg);
     size_t len = 1;
 
     startBit();
-    tx(writeAddress, len);
-    tx(readRegister, len);
-    startBit();
-    tx(readAddress, len);
-    unsigned char h = rx(1);
-    unsigned char l = rx(0); //(N)ACK
+    tx(&write, len); // send the address
+    tx(&reg, len); // send the register we want to read
+    startBit(); // restart
+    tx(&read, len); // start the read
+    unsigned char h = rx(1); // byte 0 + ACK
+    unsigned char l = rx(0); // byte 1 + NACK
     stopBit();
 
-    (uint16_t) h;
-    uint16_t val = h;
+    uint16_t val = (uint16_t)h;
     val <<= 8;
     val += l;
 
