@@ -193,13 +193,12 @@ uint16_t i2c::receive16(uint8_t address, uint8_t reg)
     tx(&reg, len); // send the register we want to read
     startBit(); // restart
     tx(&read, len); // start the read
-    uint8_t h = rx(1); // byte 0 + ACK
-    uint8_t l = rx(0); // byte 1 + NACK
+    uint8_t l = rx(1); // byte 0 + ACK
+    uint8_t h = rx(0); // byte 1 + NACK
     stopBit();
 
-    uint16_t val = (uint16_t)h;
-    val <<= 8;
-    val += l;
+    uint16_t val = (uint16_t)l;
+    val |= h << 8;
 
     return val;
 }

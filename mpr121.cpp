@@ -20,7 +20,7 @@
 mpr121::mpr121(i2c *i2c, uint8_t i2caddr_) :
     sharedi2c(i2c), i2caddr(i2caddr_)
 {
-    sharedi2c->init();
+
 }
 
 bool mpr121::begin() {
@@ -33,7 +33,7 @@ bool mpr121::begin() {
 
     if (c != 0x24) return false;
 
-    setThresholds(12, 6);
+    setThresholds(12, 6);  // TODO get rid of these magic constants... what's the right init value?
     writeRegister(MPR121_MHDR, 0x01);
     writeRegister(MPR121_NHDR, 0x01);
     writeRegister(MPR121_NCLR, 0x0E);

@@ -1,8 +1,8 @@
 #include <iostream>
-#include <thread>
-#include <chrono>
 #include "i2c.h"
-//using namespace std::literals;
+#include "mpr121.h"
+#include <bitset>
+
 
 int main() {
 
@@ -11,28 +11,32 @@ int main() {
 //    {'gpio_num': 1, 'alternate_func': 'UART2_RX', 'header_num': 11, 'pin_name': 'PA1'} -> SDA (green)
 //    Address 0x5A
 
-    i2c mpr(0, 1);
+    i2c i2c1(0, 1);
+    i2c1.init();
 
-    mpr.init();
-    const uint8_t address = 0x5a;
-    uint8_t reg = 0x80;
-    //(0x80, 0x63) this is a soft reset
-    uint8_t buf[1] = {0x63};
-    size_t len = 1;
+    mpr121 mpr1(&i2c1, 0x5A);
+    if (!mpr1.begin()) std::cout << "MPR init failed" << std::endl;
 
-    mpr.send(address, reg, buf, len);
+    uint16_t current;
+    uint16_t last;
 
-    //cfg2 = self.receive8(0x5D) this is checking a config
-    //if cfg2 != 0x24: failed comms
-    reg = 0x5d;
-    uint8_t cf2 = mpr.receive8(address, reg);
+    while (true) {
+        current = mpr1.touched();
+//        if (cap.touched() & (1 << 4)) { do something }
+        if (current!=last) std::cout<<std::bitset<16> (current) <<std::endl;
+//        for (uint8_t i = 0; i < 12; i++) {
 
-    if (cf2 != 0x24) {
-        std::cout << "cf2 wrong" << std::endl;
+//            // it if *is* touched and *wasnt* touched before, alert!
+//            if ((current & bitVal(i)) && !(last & bitVal(i))) {
+//                std::cout<<std::bitset<16>(i)<<std::endl;
+////                std::cout << (int)i << " touched" << std::endl;
+//            }
+//            // if it *was* touched and now *isnt*, alert!
+//            if (!(current & bitVal(i)) && (last & bitVal(i))) {
+////                std::cout << (int)i << " released" << std::endl;
+//            }
+//        }
+        last = current;
     }
-
-
-
-    std::cout << "Done" << std::endl;
     return 0;
 }
