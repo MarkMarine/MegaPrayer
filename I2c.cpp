@@ -2,19 +2,19 @@
 // Created by Mark Fox on 5/21/17.
 //
 
-#include "i2c.h"
+#include "I2c.h"
 #include <cstdio>
 #include "gpio_lib.h"
 
 
 
-i2c::i2c(unsigned int scl, unsigned int sda) :
-        SCL(scl), SDA(sda)
+I2c::I2c(unsigned int SCL_, unsigned int SDA_) :
+        SCL(SCL_), SDA(SDA_)
 {
 }
 
 
-bool i2c::init(void)
+bool I2c::init(void)
 {
     if (sunxi_gpio_init() < 0) {
         printf("ERROR: sunxi_gpio_init() failed");
@@ -28,7 +28,7 @@ bool i2c::init(void)
     return true;
 }
 
-void i2c::delay(void)
+void I2c::delay(void)
 {
     //specs call for a 4us delay minimum.
     //boost::this_thread::sleep_for(boost::chrono::nanoseconds(4000));
@@ -36,7 +36,7 @@ void i2c::delay(void)
 
 }
 
-void i2c::startBit(void)
+void I2c::startBit(void)
 {
     // To start a transaction, SDA is pulled low while SCL remains high
     // the next step is to pull SCL low.
@@ -51,7 +51,7 @@ void i2c::startBit(void)
     delay();
 }
 
-void i2c::stopBit(void)
+void I2c::stopBit(void)
 {
     // Releasing SDA to float high again would be a stop marker
     // signaling the end of a bus transaction.
@@ -65,7 +65,7 @@ void i2c::stopBit(void)
     delay();
 }
 
-int i2c::tx(uint8_t *buf, size_t len)
+int I2c::tx(uint8_t *buf, size_t len)
 {
     sunxi_gpio_set_cfgpin(SDA, OUTPUT);
 
@@ -97,7 +97,7 @@ int i2c::tx(uint8_t *buf, size_t len)
     return ack;
 }
 
-uint8_t i2c::rx(unsigned int ack)
+uint8_t I2c::rx(unsigned int ack)
 {
     uint8_t dat = 0;
     // receive the byte.
@@ -144,11 +144,12 @@ uint8_t i2c::rx(unsigned int ack)
 }
 
 
-void i2c::send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len)
+void I2c::send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len)
 {
     uint8_t write = address << 1; // Write address
     size_t addLen = 1;
 
+    std::lock_guard<std::mutex> guard(comms_mutex);
     startBit();
     int ack = tx(&write, addLen);
     //if (!ack) printf("ACK failed!\n"); // TODO should raise exception here
@@ -159,12 +160,13 @@ void i2c::send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len)
     stopBit();
 }
 
-uint8_t i2c::receive8(uint8_t address, uint8_t reg)
+uint8_t I2c::receive8(uint8_t address, uint8_t reg)
 {
     uint8_t write = address << 1; // Write address
     uint8_t read = write + (uint8_t )1; // read address, final bit turned on
     size_t len = 1;
 
+    std::lock_guard<std::mutex> guard(comms_mutex);
     startBit();
     // Address the board (write)
     tx(&write, len);
@@ -181,13 +183,14 @@ uint8_t i2c::receive8(uint8_t address, uint8_t reg)
     return val;
 }
 
-uint16_t i2c::receive16(uint8_t address, uint8_t reg)
+uint16_t I2c::receive16(uint8_t address, uint8_t reg)
 {
     uint8_t write = address << 1; // Write address is 7bit add << 1 with 8th bit as 0
     uint8_t read = write + (uint8_t )1; // read address, final bit turned on
 
     size_t len = 1;
 
+    std::lock_guard<std::mutex> guard(comms_mutex);
     startBit();
     tx(&write, len); // send the address
     tx(&reg, len); // send the register we want to read
@@ -203,7 +206,7 @@ uint16_t i2c::receive16(uint8_t address, uint8_t reg)
     return val;
 }
 
-i2c::~i2c()
+I2c::~I2c()
 {
 
 }

@@ -5,6 +5,8 @@
 #ifndef MEGAPRAYERI2C_I2C_H
 #define MEGAPRAYERI2C_I2C_H
 
+// This has been tuned with the logic analyzer to be
+// ~100khz when using the Orange Pi Zero h2+
 #define CLK_WIDTH 600
 
 #define INPUT 0
@@ -15,8 +17,9 @@
 
 #include <cstdlib>
 #include <stdint.h>
+#include <mutex>
 
-class i2c {
+class I2c {
 private:
     void delay(void);
     void startBit(void);
@@ -25,15 +28,16 @@ private:
     unsigned char rx(unsigned int ack);
 
 public:
-    i2c(unsigned int scl, unsigned int sda);
+    I2c(unsigned int SCL_, unsigned int SDA_);
     bool init(void);
     void send(uint8_t address, uint8_t reg, uint8_t *buf, size_t len);
     uint8_t receive8(uint8_t address, uint8_t reg);
     uint16_t receive16(uint8_t address, uint8_t reg);
     unsigned int SCL;
     unsigned int SDA;
+    std::mutex comms_mutex;
 
-    ~i2c();
+    ~I2c();
 };
 
 

@@ -15,15 +15,15 @@
 // Adapted for OrangePi Zero by Mark Fox on 5/22/17.
 //
 
-#include "mpr121.h"
+#include "Mpr121.h"
 
-mpr121::mpr121(i2c *i2c, uint8_t i2caddr_) :
-    sharedi2c(i2c), i2caddr(i2caddr_)
+Mpr121::Mpr121(std::shared_ptr<I2c> i2c_, uint8_t i2caddr_) :
+    i2c(i2c_), i2caddr(i2caddr_)
 {
 
 }
 
-bool mpr121::begin() {
+bool Mpr121::begin() {
 
 //     soft reset
     writeRegister(MPR121_SOFTRESET, 0x63);
@@ -57,40 +57,40 @@ bool mpr121::begin() {
     return true;
 }
 
-uint8_t mpr121::readRegister8(uint8_t reg)
+uint8_t Mpr121::readRegister8(uint8_t reg)
 {
-    return sharedi2c->receive8(i2caddr, reg);
+    return i2c->receive8(i2caddr, reg);
 }
 
-uint16_t mpr121::readRegister16(uint8_t reg)
+uint16_t Mpr121::readRegister16(uint8_t reg)
 {
-    return sharedi2c->receive16(i2caddr, reg);
+    return i2c->receive16(i2caddr, reg);
 }
 
-void mpr121::writeRegister(uint8_t reg, uint8_t value)
+void Mpr121::writeRegister(uint8_t reg, uint8_t value)
 {
-    sharedi2c->send(i2caddr, reg, &value, 1);
+    i2c->send(i2caddr, reg, &value, 1);
 }
 
-uint16_t mpr121::touched(void)
+uint16_t Mpr121::touched(void)
 {
     uint16_t t = readRegister16(MPR121_TOUCHSTATUS_L);
     return t & 0x0FFF;
 }
 
-void mpr121::setThresholds(uint8_t touch, uint8_t release) {
+void Mpr121::setThresholds(uint8_t touch, uint8_t release) {
     for (uint8_t i=0; i<12; i++) {
         writeRegister(MPR121_TOUCHTH_0 + 2*i, touch);
         writeRegister(MPR121_RELEASETH_0 + 2*i, release);
     }
 }
 
-uint16_t  mpr121::filteredData(uint8_t t) {
+uint16_t  Mpr121::filteredData(uint8_t t) {
     if (t > 12) return 0;
     return readRegister16(MPR121_FILTDATA_0L + t*2);
 }
 
-uint16_t  mpr121::baselineData(uint8_t t) {
+uint16_t  Mpr121::baselineData(uint8_t t) {
     if (t > 12) return 0;
     uint16_t bl = readRegister8(MPR121_BASELINE_0 + t);
     return (bl << 2);

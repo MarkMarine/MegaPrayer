@@ -57,12 +57,13 @@
 #define MPR121_SOFTRESET        0x80
 
 #include <cstdint>
-#include "i2c.h"
+#include "I2c.h"
+#include "II2c.h"
 
-class mpr121 {
+class Mpr121 {
 public:
 // Hardware I2C
-    mpr121(i2c *i2c, uint8_t addr); // pass in i2c object
+    Mpr121(std::shared_ptr<I2c> i2c_, uint8_t i2caddr_); // pass in i2c object
     bool begin();
     uint8_t readRegister8(uint8_t reg);
     uint16_t readRegister16(uint8_t reg);
@@ -71,10 +72,10 @@ public:
     void setThresholds(uint8_t touch, uint8_t release);
     uint16_t filteredData(uint8_t t);
     uint16_t  baselineData(uint8_t t);
+    std::shared_ptr<I2c> i2c;
 
 private:
     uint8_t i2caddr;
-    i2c* sharedi2c;
     unsigned int IRQ;
 };
 

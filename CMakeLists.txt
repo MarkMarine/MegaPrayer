@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.6)
 project(megaprayerI2c)
 
 set(CMAKE_CXX_STANDARD 11)
-set(SOURCE_FILES main.cpp i2c.cpp i2c.h common.h common.c gpio_lib.c gpio_lib.h mpr121.cpp mpr121.h)
+set(SOURCE_FILES main.cpp I2c.cpp I2c.h common.h common.c gpio_lib.c gpio_lib.h Mpr121.cpp Mpr121.h II2c.h I2cFactory.h I2cFactory.cpp)
 
 FIND_PACKAGE (Threads)
 
