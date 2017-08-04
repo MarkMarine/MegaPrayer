@@ -57,13 +57,15 @@
 #define MPR121_SOFTRESET        0x80
 
 #include <cstdint>
-#include "I2c.h"
-#include "II2c.h"
+#include <bitset>
+#include "OrangePi0_i2c/I2c.h"
+
+using namespace std;
 
 class Mpr121 {
 public:
 // Hardware I2C
-    Mpr121(std::shared_ptr<I2c> i2c_, uint8_t i2caddr_); // pass in i2c object
+    Mpr121(shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_); // pass in i2c object
     bool begin();
     uint8_t readRegister8(uint8_t reg);
     uint16_t readRegister16(uint8_t reg);
@@ -72,11 +74,16 @@ public:
     void setThresholds(uint8_t touch, uint8_t release);
     uint16_t filteredData(uint8_t t);
     uint16_t  baselineData(uint8_t t);
-    std::shared_ptr<I2c> i2c;
+
+    bool triggered();
+    vector<pair<unsigned int, bool>> changed();
 
 private:
+    shared_ptr<I2c> i2c;
     uint8_t i2caddr;
-    unsigned int IRQ;
+    unsigned int interrupt;
+    unsigned int multiplier;
+    bitset<12> previous;
 };
 
 

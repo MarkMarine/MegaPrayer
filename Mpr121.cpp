@@ -15,12 +15,16 @@
 // Adapted for OrangePi Zero by Mark Fox on 5/22/17.
 //
 
+#include <vector>
 #include "Mpr121.h"
+#include "gpio_lib.h"
 
-Mpr121::Mpr121(std::shared_ptr<I2c> i2c_, uint8_t i2caddr_) :
-    i2c(i2c_), i2caddr(i2caddr_)
+using namespace std;
+
+Mpr121::Mpr121(shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_) :
+    i2c(i2c_), i2caddr(i2caddr_), interrupt(interrupt_), multiplier(multiplier_)
 {
-
+    sunxi_gpio_set_cfgpin(interrupt, INPUT);
 }
 
 bool Mpr121::begin() {
@@ -75,6 +79,7 @@ void Mpr121::writeRegister(uint8_t reg, uint8_t value)
 uint16_t Mpr121::touched(void)
 {
     uint16_t t = readRegister16(MPR121_TOUCHSTATUS_L);
+    // we only get 12 lower bits from the sensor
     return t & 0x0FFF;
 }
 
@@ -94,4 +99,28 @@ uint16_t  Mpr121::baselineData(uint8_t t) {
     if (t > 12) return 0;
     uint16_t bl = readRegister8(MPR121_BASELINE_0 + t);
     return (bl << 2);
+}
+
+bool Mpr121::triggered() {
+    sunxi_gpio_set_cfgpin(interrupt, INPUT);
+    int trigger = sunxi_gpio_input(interrupt);
+    // interrupt is high unless it's touched and needs to be read, then it's low
+    bool result = trigger == 0;
+    return result;
+}
+
+vector<pair<unsigned int, bool>> Mpr121::changed() {
+    auto current = bitset<12> (touched());
+    // light #, on?
+    vector<pair<unsigned int, bool>> changedLights;
+    if (current != previous) {
+        for (uint16_t i=0; i<12; i++) {
+            if (current.test(i) != previous.test(i)) {
+                // add 12 * multiplier to index the lights properly
+                changedLights.emplace_back(i + 12 * multiplier, current.test(i));
+            }
+        }
+    }
+    previous = current;
+    return changedLights;
 }

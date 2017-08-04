@@ -1,0 +1,3 @@
+[submodule "OrangePi0_i2c"]
+	path = OrangePi0_i2c
+	url = git@github.com:MarkMarine/OrangePi0_i2c.git
