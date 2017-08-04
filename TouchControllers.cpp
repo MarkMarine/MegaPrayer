@@ -92,8 +92,11 @@ void TouchControllers::sendOSC(vector<pair<unsigned int, bool>> changed) {
             ostringstream ss;
             if (c.first == 60){
                 ss << "/trigger/left_nail";
-            } else {
+            } else if (c.first == 61) {
                 ss << "/trigger/right_nail";
+            } else {
+                // TODO error handling
+                continue;
             }
             float val;
             if (c.second) { val = 1.0; } else { val = 0.0; }
