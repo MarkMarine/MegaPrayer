@@ -58,6 +58,8 @@
 
 #include <cstdint>
 #include <bitset>
+#include <vector>
+#include <memory>
 #include "OrangePi0_i2c/I2c.h"
 
 using namespace std;
@@ -65,25 +67,27 @@ using namespace std;
 class Mpr121 {
 public:
 // Hardware I2C
-    Mpr121(shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_); // pass in i2c object
+    Mpr121(shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_);
     bool begin();
     uint8_t readRegister8(uint8_t reg);
     uint16_t readRegister16(uint8_t reg);
     void writeRegister(uint8_t reg, uint8_t value);
-    uint16_t touched(void);
+    uint16_t sensorsTouched();
     void setThresholds(uint8_t touch, uint8_t release);
     uint16_t filteredData(uint8_t t);
     uint16_t  baselineData(uint8_t t);
 
-    bool triggered();
-    vector<pair<unsigned int, bool>> changed();
+    bool interruptTriggered();
+    vector<pair<unsigned int, unsigned int>> beadsChanged();
+
 
 private:
     shared_ptr<I2c> i2c;
     uint8_t i2caddr;
-    unsigned int interrupt;
+    unsigned int interruptPin;
     unsigned int multiplier;
-    bitset<12> previous;
+//    bitset<12> previous;
+    uint16_t prevState;
 };
 
 

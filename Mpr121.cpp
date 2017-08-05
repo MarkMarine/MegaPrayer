@@ -16,15 +16,20 @@
 //
 
 #include <vector>
+#include <memory>
+#include <iostream>
+
 #include "Mpr121.h"
+#include "OrangePi0_i2c/I2c.h"
 #include "gpio_lib.h"
 
 using namespace std;
 
-Mpr121::Mpr121(shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_) :
-    i2c(i2c_), i2caddr(i2caddr_), interrupt(interrupt_), multiplier(multiplier_)
+Mpr121::Mpr121(std::shared_ptr<I2c> i2c_, uint8_t i2caddr_, unsigned int interrupt_, unsigned int multiplier_) :
+    i2c(i2c_), i2caddr(i2caddr_), interruptPin(interrupt_), multiplier(multiplier_)
 {
-    sunxi_gpio_set_cfgpin(interrupt, INPUT);
+    sunxi_gpio_set_cfgpin(interruptPin, INPUT);
+    cout << "Init MPR121 at 0x" << std::hex << static_cast<int>(i2caddr_) << " Board #" << multiplier_ << endl;
 }
 
 bool Mpr121::begin() {
@@ -35,7 +40,10 @@ bool Mpr121::begin() {
 
     uint8_t c = readRegister8(MPR121_CONFIG2);
 
-    if (c != 0x24) return false;
+    if (c != 0x24) {
+        cout << "initial config for 0x24 check failed, check wiring for #" << multiplier << endl;
+        return false;
+    }
 
     setThresholds(12, 6);  // TODO get rid of these magic constants... what's the right init value?
     writeRegister(MPR121_MHDR, 0x01);
@@ -76,7 +84,7 @@ void Mpr121::writeRegister(uint8_t reg, uint8_t value)
     i2c->send(i2caddr, reg, &value, 1);
 }
 
-uint16_t Mpr121::touched(void)
+uint16_t Mpr121::sensorsTouched()
 {
     uint16_t t = readRegister16(MPR121_TOUCHSTATUS_L);
     // we only get 12 lower bits from the sensor
@@ -101,26 +109,40 @@ uint16_t  Mpr121::baselineData(uint8_t t) {
     return (bl << 2);
 }
 
-bool Mpr121::triggered() {
-    sunxi_gpio_set_cfgpin(interrupt, INPUT);
-    int trigger = sunxi_gpio_input(interrupt);
+bool Mpr121::interruptTriggered() {
+    sunxi_gpio_set_cfgpin(interruptPin, INPUT);
     // interrupt is high unless it's touched and needs to be read, then it's low
-    bool result = trigger == 0;
-    return result;
+    return sunxi_gpio_input(interruptPin) == 0;
 }
 
-vector<pair<unsigned int, bool>> Mpr121::changed() {
-    auto current = bitset<12> (touched());
+//vector<pair<unsigned int, unsigned int>> Mpr121::changed() {
+//    auto current = bitset<12> (touched());
+//    cout << "Current " << current << " Previous " << previous << endl;
+//    // light #, on?
+//    vector<pair<unsigned int, unsigned int>> changedLights;
+//    for (uint16_t i=0; i<12; i++) {
+//        if ((current.test(i) != previous.test(i))) {
+//            changedLights.emplace_back(i + 12 * multiplier, current.test(i));
+//        }
+//    }
+//    previous = current;
+//    cout << "Previous set to: " << previous << endl;
+//    return changedLights;
+//}
+
+vector<pair<unsigned int, unsigned int>> Mpr121::beadsChanged() {
+    auto currentState = sensorsTouched();
+    cout << "Current " << currentState << " Previous " << prevState << endl;
     // light #, on?
-    vector<pair<unsigned int, bool>> changedLights;
-    if (current != previous) {
-        for (uint16_t i=0; i<12; i++) {
-            if (current.test(i) != previous.test(i)) {
-                // add 12 * multiplier to index the lights properly
-                changedLights.emplace_back(i + 12 * multiplier, current.test(i));
-            }
+    vector<pair<unsigned int, unsigned int>> changedLights;
+    for (uint16_t i=0; i<12; i++) {
+        bool c = (currentState & (1 << i)) > 0;
+        bool p = (prevState & (1 << i)) > 0;
+        if (c != p) {
+            changedLights.emplace_back(i + 12 * multiplier, c);
         }
     }
-    previous = current;
+    prevState = currentState;
+    cout << "Previous set to: " << prevState << endl;
     return changedLights;
 }

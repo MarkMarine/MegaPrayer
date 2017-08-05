@@ -29,7 +29,6 @@ else (LIBLO_LIBRARIES AND LIBLO_INCLUDE_DIRS)
             /usr/include
             /usr/local/include
             /opt/local/include
-            /sw/include
             )
 
     find_library(LIBLO_LIBRARY
@@ -39,7 +38,6 @@ else (LIBLO_LIBRARIES AND LIBLO_INCLUDE_DIRS)
             /usr/lib
             /usr/local/lib
             /opt/local/lib
-            /sw/lib
             )
 
     set(LIBLO_INCLUDE_DIRS

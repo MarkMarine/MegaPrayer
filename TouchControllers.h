@@ -8,8 +8,7 @@
 #include "OrangePi0_i2c/I2cFactory.h"
 #include "Mpr121.h"
 #include <vector>
-#include <thread>
-#include <map>
+#include <memory>
 
 using namespace std;
 
@@ -17,13 +16,11 @@ using namespace std;
 class TouchControllers {
 public:
     TouchControllers();
-    void init();
-    bool touched();
-    vector<pair<unsigned int, bool>> changed();
-    void sendOSC(vector<pair<unsigned int, bool>>);
+    bool init();
+    bool sensorsTriggered();
+    vector<pair<unsigned int, unsigned int>> allBeadsChanged();
+    int sendOSC();
     void clientLoop();
-
-    ~TouchControllers();
 private:
     vector<Mpr121> sensors;
     shared_ptr<I2c> i2c_0;
