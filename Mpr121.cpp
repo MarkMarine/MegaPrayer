@@ -18,6 +18,7 @@
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <unordered_map>
 
 #include "Mpr121.h"
 #include "OrangePi0_i2c/I2c.h"
@@ -115,34 +116,16 @@ bool Mpr121::interruptTriggered() {
     return sunxi_gpio_input(interruptPin) == 0;
 }
 
-//vector<pair<unsigned int, unsigned int>> Mpr121::changed() {
-//    auto current = bitset<12> (touched());
-//    cout << "Current " << current << " Previous " << previous << endl;
-//    // light #, on?
-//    vector<pair<unsigned int, unsigned int>> changedLights;
-//    for (uint16_t i=0; i<12; i++) {
-//        if ((current.test(i) != previous.test(i))) {
-//            changedLights.emplace_back(i + 12 * multiplier, current.test(i));
-//        }
-//    }
-//    previous = current;
-//    cout << "Previous set to: " << previous << endl;
-//    return changedLights;
-//}
-
-vector<pair<unsigned int, unsigned int>> Mpr121::beadsChanged() {
-    auto currentState = sensorsTouched();
-    cout << "Current " << currentState << " Previous " << prevState << endl;
+vector<pair<unsigned int, unsigned int>> Mpr121::beadsChanged(unordered_map<unsigned int, bool> &beadState) {
+    auto currentState = bitset<12> (sensorsTouched());
     // light #, on?
     vector<pair<unsigned int, unsigned int>> changedLights;
+
     for (uint16_t i=0; i<12; i++) {
-        bool c = (currentState & (1 << i)) > 0;
-        bool p = (prevState & (1 << i)) > 0;
-        if (c != p) {
-            changedLights.emplace_back(i + 12 * multiplier, c);
+        if (currentState.test(i) != beadState[i + 12 * multiplier]) {
+            changedLights.emplace_back(i + 12 * multiplier, currentState.test(i));
+            beadState[i + 12 * multiplier] = currentState.test(i);
         }
     }
-    prevState = currentState;
-    cout << "Previous set to: " << prevState << endl;
     return changedLights;
 }

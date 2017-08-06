@@ -60,6 +60,8 @@
 #include <bitset>
 #include <vector>
 #include <memory>
+#include <unordered_map>
+
 #include "OrangePi0_i2c/I2c.h"
 
 using namespace std;
@@ -78,16 +80,13 @@ public:
     uint16_t  baselineData(uint8_t t);
 
     bool interruptTriggered();
-    vector<pair<unsigned int, unsigned int>> beadsChanged();
-
+    vector<pair<unsigned int, unsigned int>> beadsChanged(unordered_map<unsigned int, bool>&);
 
 private:
     shared_ptr<I2c> i2c;
     uint8_t i2caddr;
     unsigned int interruptPin;
     unsigned int multiplier;
-//    bitset<12> previous;
-    uint16_t prevState;
 };
 
 

@@ -9,6 +9,7 @@
 #include "Mpr121.h"
 #include <vector>
 #include <memory>
+#include <unordered_map>
 
 using namespace std;
 
@@ -23,6 +24,7 @@ public:
     void clientLoop();
 private:
     vector<Mpr121> sensors;
+    unordered_map<unsigned int, bool> beadState;
     shared_ptr<I2c> i2c_0;
     shared_ptr<I2c> i2c_1;
 };
