@@ -29,14 +29,14 @@
 #define i2c_1_sda 10    // 26
 #define INT_PIN3 7      // 12
 #define INT_PIN4 19     // 16
-
-#define INT_PIN5 10     // 26
+#define INT_PIN5 18     // 18 --nails
 
 // LED controller address
-#define CONTROLLER_IP "192.168.1.72"
+#define CONTROLLER_IP "192.168.1.84"
 #define CONTROLLER_PORT "5006"
 
 #define BUNDLE_MSG 0 // Leave bundle messages off, they don't work
+#define DELAY 10 // ms of sleep between the loop
 
 using namespace std;
 
@@ -105,17 +105,17 @@ bool TouchControllers::init() {
             beadState[i] = false;
         }
     }
-//
-//    mult = 5;
-//    Mpr121 nails(i2c_1, 0x5C, INT_PIN5, mult); // 60, 61 (Left, Right nail, respectively)
-//    started = nails.begin();
-//    if (!started) { cout << "failed init nails" << endl; failed = true; }
-//    else {
-//        sensors.push_back(nails);
-//        for (int i = 12 * mult; i < 12 * mult; ++i) {
-//            beadState[i] = false;
-//        }
-//    }
+
+    mult = 5;
+    Mpr121 nails(i2c_1, 0x5C, INT_PIN5, mult); // 60, 61 (Left, Right nail, respectively)
+    started = nails.begin();
+    if (!started) { cout << "failed init nails" << endl; failed = true; }
+    else {
+        sensors.push_back(nails);
+        for (int i = 12 * mult; i < 12 * mult; ++i) {
+            beadState[i] = false;
+        }
+    }
 
     return !failed;
 }
@@ -178,6 +178,6 @@ void TouchControllers::clientLoop() {
         if (sensorsTriggered()) {
             sendOSC();
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(DELAY));
     }
 }
